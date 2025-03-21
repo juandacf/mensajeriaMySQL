@@ -12,9 +12,9 @@ BEGIN
     DECLARE numero_inicial INTEGER;
     DECLARE numero_final INTEGER;
 
-    SELECT COUNT(usuario_id) INTO numero_inicial FROM usuarios;
+    SELECT COUNT(usuario_id) INTO numero_inicial FROM usuarios WHERE usuario_id=input_id;
     INSERT INTO usuarios(nombre,email,contrasena) VALUES(input_nombre, input_email, input_contrasena);
-    SELECT COUNT(usuario_id) INTO numero_final FROM usuarios;
+    SELECT COUNT(usuario_id) INTO numero_final FROM usuarios WHERE usuario_id=input_id;
 
     IF numero_inicial<numero_final THEN
         SET validacion_insercion = 'El registro fue exitoso';
@@ -48,9 +48,9 @@ BEGIN
     DECLARE numero_inicial INTEGER;
     DECLARE numero_final INTEGER;
 
-    SELECT COUNT(usuario_id) INTO numero_inicial FROM usuarios;
+    SELECT COUNT(usuario_id) INTO numero_inicial FROM usuarios WHERE usuario_id=input_id;
     DELETE FROM usuarios WHERE usuario_id = input_id;
-    SELECT COUNT(usuario_id) INTO numero_final FROM usuarios;
+    SELECT COUNT(usuario_id) INTO numero_final FROM usuarios WHERE usuario_id=input_id;
 
     IF numero_inicial=numero_final THEN
         SET validacion_eliminacion = 'La eliminación no se realizó';
@@ -67,8 +67,70 @@ CALL delete_user(3, @resultado);
 SELECT @resultado;
 
 -- Cree un procedimiento almacenado que permita editar un usuario retornando un mensaje que indique si la inserción fue satisfactoria.
+
+DROP PROCEDURE IF EXISTS update_user;
+
+DELIMITER $$
+
+CREATE PROCEDURE update_user(
+    IN input_id INT,
+    IN new_name VARCHAR(50),
+    IN new_email VARCHAR(100),
+    IN new_password VARCHAR(100),
+    OUT validation_message VARCHAR(100)
+)
+BEGIN
+DECLARE initial_name VARCHAR (50);
+DECLARE final_name  VARCHAR (100);
+
+SET validation_message = 'Los datos no pudieron ser actualizados.';
+SELECT nombre INTO initial_name FROM usuarios WHERE usuario_id=input_id;
+
+UPDATE usuarios
+SET nombre=new_name,
+email = new_email,
+contrasena= new_password
+WHERE usuario_id = input_id;
+
+SELECT nombre INTO final_name FROM usuarios WHERE usuario_id=input_id;
+
+SET validation_message = 'Los datos pudieron ser actualizados.';
+
+END $$
+DELIMITER ;
+
+SET @resultado = '';
+CALL update_user (1, "juanchito", "juanchito@gmail.com", "juanchito123", @resultado);
+SELECT @resultado;
+
 -- Cree un procedimiento almacenado que permita buscar un usuario por su nombre.
+
+DROP PROCEDURE IF EXISTS find_by_name;
+
+DELIMITER $$
+CREATE PROCEDURE find_by_name ( 
+    IN input_name VARCHAR(50)
+)
+BEGIN
+
+SELECT usuario_id, nombre, email, contrasena, fecha_creacion 
+FROM usuarios 
+WHERE nombre=input_name;
+
+END$$
+DELIMITER ;
 -- Realice una consulta que permita iniciar una conversación.
+
+DROP PROCEDURE IF EXISTS start_conversation;
+
+DELIMITER $$
+CREATE PROCEDURE start_conversation(
+    IN 
+)
+BEGIN
+
+END$$
+DELIMITER ;
 -- Realice un procedimiento almacenado que permita agregar un nuevo participante a la conversación y valide si hay capacidad disponible. La cantidad maxima por cada conversación son 5 usuarios.
 -- Realice un procedimiento que permita visualizar los mensaje de una conversación.
 -- Realice un procedimiento almacenado para enviar un mensaje a una conversación.
