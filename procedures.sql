@@ -66,6 +66,9 @@ CALL delete_user(3, @resultado);
 
 SELECT @resultado;
 
+
+
+
 -- Cree un procedimiento almacenado que permita editar un usuario retornando un mensaje que indique si la inserción fue satisfactoria.
 
 DROP PROCEDURE IF EXISTS update_user;
@@ -103,6 +106,11 @@ SET @resultado = '';
 CALL update_user (1, "juanchito", "juanchito@gmail.com", "juanchito123", @resultado);
 SELECT @resultado;
 
+
+
+
+
+
 -- Cree un procedimiento almacenado que permita buscar un usuario por su nombre.
 
 DROP PROCEDURE IF EXISTS find_by_name;
@@ -119,19 +127,61 @@ WHERE nombre=input_name;
 
 END$$
 DELIMITER ;
+
+
+
+
 -- Realice una consulta que permita iniciar una conversación.
 
 DROP PROCEDURE IF EXISTS start_conversation;
 
 DELIMITER $$
 CREATE PROCEDURE start_conversation(
-    IN 
+    IN input_conversation_name VARCHAR(100)
 )
 BEGIN
-
+    INSERT INTO conversaciones (nombre_conversacion) VALUES (input_conversation_name);
 END$$
 DELIMITER ;
+
+CALL start_conversation ("nueva conversación!!!");
+
+SELECT * FROM conversaciones;
+
+
+
+
+
 -- Realice un procedimiento almacenado que permita agregar un nuevo participante a la conversación y valide si hay capacidad disponible. La cantidad maxima por cada conversación son 5 usuarios.
+
+DROP PROCEDURE IF EXISTS  add_participant;
+
+DELIMITER $$
+CREATE PROCEDURE add_participant(
+    IN input_idConversation INT,
+    IN input_idUser INT,
+    OUT final_message VARCHAR(100)
+)
+
+BEGIN
+    DECLARE current_users INT;
+    
+    SELECT COUNT(participante_id) INTO current_users FROM participantes WHERE conversacion_id = input_idConversation;
+
+    IF current_users < 5 THEN
+        INSERT INTO participantes(conversacion_id, usuario_id) VALUES (input_idConversation, input_idUser);
+        SET final_message = 'El usuario pudo ser añadido a la conversación';
+    ELSE
+        SET final_message = 'El usuario no pudo ser añadido a la conversación. El límite  de 5 usuarios fue alcanzado.';
+    END IF;
+    
+END $$
+DELIMITER ;
+
+SET @mensaje = '';
+CALL add_participant(1,1, @mensaje);
+
+SELECT @mensaje;
 -- Realice un procedimiento que permita visualizar los mensaje de una conversación.
 -- Realice un procedimiento almacenado para enviar un mensaje a una conversación.
 -- Modifica la estructura de la tabla para que permita el envio de los mensaje a todos los usuarios o a un usuario en particular. y realice las siguientes consultas.
