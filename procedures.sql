@@ -183,9 +183,45 @@ CALL add_participant(1,1, @mensaje);
 
 SELECT @mensaje;
 -- Realice un procedimiento que permita visualizar los mensaje de una conversación.
+
+DROP PROCEDURE IF EXISTS view_messages;
+
+DELIMITER $$
+
+CREATE PROCEDURE view_messages(
+ IN input_conversacion_id INT
+)
+BEGIN
+
+SELECT mensaje_id, remitente_id, contenido 
+FROM mensajes
+WHERE conversacion_id= input_conversacion_id;
+
+
+END $$
+DELIMITER ;
+
+CALL view_messages(1);
 -- Realice un procedimiento almacenado para enviar un mensaje a una conversación.
+
+DROP PROCEDURE IF EXISTS send_message;
+
+DELIMITER $$
+
+CREATE PROCEDURE send_message(
+    IN input_conversacion_id INT,
+    IN input_remitente_id INT,
+    IN input_contenido TEXT
+)
+
+
+BEGIN 
+
+ INSERT INTO mensajes(conversacion_id, remitente_id, contenido) VALUES (input_conversacion_id, input_remitente_id, input_contenido);
+END$$
+DELIMITER ;
+
+CALL send_message(1,1, "hola, neitas");
 -- Modifica la estructura de la tabla para que permita el envio de los mensaje a todos los usuarios o a un usuario en particular. y realice las siguientes consultas.
-
 -- Realice un procedimiento almacenado que permita visualizar los mensajes de un usuario especifico.
-
 -- Realice un procedimiento almacenado que permita eliminar a un usuario que no esta respetando las normas de buena conversación. Agregue una tabla que permita agregar palabra no deseadas. El procedimiento debe inspeccionar la conversación a verificar.
