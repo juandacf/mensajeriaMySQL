@@ -222,6 +222,84 @@ END$$
 DELIMITER ;
 
 CALL send_message(1,1, "hola, neitas");
+
+
 -- Modifica la estructura de la tabla para que permita el envio de los mensaje a todos los usuarios o a un usuario en particular. y realice las siguientes consultas.
+
+CREATE TABLE mensajes (
+    mensaje_id INT AUTO_INCREMENT PRIMARY KEY,
+    conversacion_id INT NOT NULL,
+    remitente_id INT NOT NULL,
+    destinatario_id INT NULL, -- NULL significa "a todos", un valor específico indica un usuario particular
+    contenido TEXT NOT NULL,
+    fecha_envio TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (conversacion_id) REFERENCES conversaciones(conversacion_id) ON DELETE CASCADE,
+    FOREIGN KEY (remitente_id) REFERENCES usuarios(usuario_id) ON DELETE CASCADE,
+    FOREIGN KEY (destinatario_id) REFERENCES usuarios(usuario_id) ON DELETE SET NULL
+);
+
 -- Realice un procedimiento almacenado que permita visualizar los mensajes de un usuario especifico.
+
+DELIMITER $$
+
+CREATE PROCEDURE VerMensajesUsuario(IN p_usuario_id INT)
+BEGIN
+    SELECT 
+        m.mensaje_id,
+        c.nombre_conversacion,
+        u1.nombre AS remitente,
+        u2.nombre AS destinatario,
+        m.contenido,
+        m.fecha_envio
+    FROM mensajes m
+    JOIN conversaciones c ON m.conversacion_id = c.conversacion_id
+    JOIN usuarios u1 ON m.remitente_id = u1.usuario_id
+    LEFT JOIN usuarios u2 ON m.destinatario_id = u2.usuario_id
+    WHERE m.remitente_id = p_usuario_id 
+       OR m.destinatario_id = p_usuario_id 
+       OR (m.destinatario_id IS NULL AND EXISTS (
+           SELECT 1 
+           FROM participantes p 
+           WHERE p.conversacion_id = m.conversacion_id 
+           AND p.usuario_id = p_usuario_id
+       ))
+    ORDER BY m.fecha_envio DESC;
+END $$
+
+DELIMITER ;
 -- Realice un procedimiento almacenado que permita eliminar a un usuario que no esta respetando las normas de buena conversación. Agregue una tabla que permita agregar palabra no deseadas. El procedimiento debe inspeccionar la conversación a verificar.
+
+CREATE TABLE palabras_prohibidas (
+    palabra_id INT AUTO_INCREMENT PRIMARY KEY,
+    palabra VARCHAR(50) NOT NULL UNIQUE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+DELIMITER $$
+
+CREATE PROCEDURE EliminarUsuarioInfractor(IN p_usuario_id INT)
+BEGIN
+    DECLARE v_mensajes_infractores INT;
+
+    -- Contar mensajes que contienen palabras prohibidas
+    SELECT COUNT(*) INTO v_mensajes_infractores
+    FROM mensajes m
+    JOIN palabras_prohibidas pp
+    WHERE m.remitente_id = p_usuario_id
+    AND m.contenido REGEXP CONCAT('[[:<:]]', pp.palabra, '[[:>:]]');
+
+    IF v_mensajes_infractores > 0 THEN
+        -- Opción 1: Eliminar al usuario de todas las conversaciones
+        DELETE FROM participantes WHERE usuario_id = p_usuario_id;
+        
+        -- Opción 2: Eliminar completamente al usuario (descomentar si es lo deseado)
+        -- DELETE FROM usuarios WHERE usuario_id = p_usuario_id;
+
+        SELECT CONCAT('Usuario ', p_usuario_id, ' eliminado por violar normas (', v_mensajes_infractores, ' mensajes infractores).') AS resultado;
+    ELSE
+        SELECT 'El usuario no ha violado las normas.' AS resultado;
+    END IF;
+END $$
+
+DELIMITER ;
+
